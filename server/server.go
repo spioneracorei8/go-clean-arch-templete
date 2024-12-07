@@ -1,9 +1,13 @@
 package server
 
 import (
+	"fmt"
+	"go-clean-arch-templete/routes"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/sirupsen/logrus"
 
 	"github.com/gofiber/swagger"
 )
@@ -12,21 +16,14 @@ type Server struct {
 	ServerReady chan bool
 	APP_LOGGER  bool
 	APP_PORT    string
+	// // cors
+	ALLOW_HEADERS     string
+	ALLOW_ORIGINS     string
+	ALLOW_METHODS     string
+	ALLOW_CREDENTIALS bool
+	// mongo db
+	// MONGODB_CONNECTION_URI string
 }
-
-// func (s *Server) connectMongoDBTest(ctx context.Context) *mongo.Database {
-// 	var (
-// 		client *mongo.Client
-// 		err    error
-// 	)
-// 	if client, err = mongo.Connect(ctx, options.Client().ApplyURI(s.MONGODB_CONNECTION_URI)); err != nil {
-// 		panic(err)
-// 	}
-// 	if err = client.Ping(ctx, nil); err != nil {
-// 		panic(err)
-// 	}
-// 	return client.Database("aec-form")
-// }
 
 // func (s *Server) connectMongoDB(ctx context.Context) *mongo.Database {
 // 	var (
@@ -40,10 +37,10 @@ type Server struct {
 // 	if err = client.Ping(ctx, nil); err != nil {
 // 		panic(err)
 // 	}
-// 	if err = utils.CreateFormIndex(client.Database("aec-form")); err != nil {
+// 	if err = utils.CreateFormIndex(client.Database("")); err != nil {
 // 		panic(err)
 // 	}
-// 	return client.Database("aec-form")
+// 	return client.Database("")
 // }
 
 // func (s *Server) connectMinio() *minio.Client {
@@ -100,11 +97,10 @@ func (s *Server) Start() {
 		// mdb         *mongo.Database = s.connectMongoDB(ctx)
 		app *fiber.App
 		// grpcServ *grpc.Server
-		port string
-		err  error
+		err error
 	)
 	// defer cancel()
-	// minioClient :=
+	
 	// Inititalize the http server
 	app = fiber.New()
 	if s.APP_LOGGER {
@@ -116,10 +112,10 @@ func (s *Server) Start() {
 	// defer grpcServ.GracefulStop()
 
 	app.Use(cors.New(cors.Config{
-		AllowHeaders:     "Origin, Content-Type, Accept, Content-Length, Accept-Language, Accept-Encoding, Connection, Access-Control-Allow-Origin",
-		AllowOrigins:     "*",
-		AllowCredentials: true,
-		AllowMethods:     "POST, GET, PUT, DELETE",
+		AllowHeaders:     s.ALLOW_HEADERS,
+		AllowOrigins:     s.ALLOW_ORIGINS,
+		AllowMethods:     s.ALLOW_METHODS,
+		AllowCredentials: s.ALLOW_CREDENTIALS,
 	}))
 
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -149,10 +145,8 @@ func (s *Server) Start() {
 	//==============================================================
 	// Fiber Router
 	//==============================================================
-
 	app.Get("/swagger/*", swagger.HandlerDefault)
-
-	route := routes.NewRoute(app)
+	_ = routes.NewRoute(app)
 
 	// go func() {
 	// 	if r := recover(); r != nil {
@@ -163,8 +157,7 @@ func (s *Server) Start() {
 	// 	}
 	// }()
 
-	port = ":" + s.APP_PORT
-	if err = app.Listen(port); err != nil {
-		panic(err)
+	if err = app.Listen(fmt.Sprintf(":%s", s.APP_PORT)); err != nil {
+		logrus.Errorf("Error while running port %s: %s \n", s.APP_PORT, err.Error())
 	}
 }

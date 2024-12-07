@@ -3,6 +3,11 @@
 ## RUN SERVER APPLICATION
 <h4>go to server directory and run</h4>
 
+## LOAD PACKAGES
+```bash
+go mod tidy
+```
+
 ```golang
 go run main.go
 # OR
